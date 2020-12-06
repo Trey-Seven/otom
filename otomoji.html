@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html>
+ 
+<head>
+     <meta charset="UTF-8">
+     <meta http-equiv="Pragma" content="no-cache">
+
+     <title>おともじ</title>
+
+     <link href="https://fonts.googleapis.com/earlyaccess/hannari.css" rel="stylesheet">
+     <link href="https://fonts.googleapis.com/css?family=Sawarabi+Mincho" rel="stylesheet">
+     <link rel="preconnect" href="https://fonts.gstatic.com">
+     <link href="https://fonts.googleapis.com/css2?family=Averia+Serif+Libre:wght@300&display=swap" rel="stylesheet">
+     <link rel="stylesheet" href="otomoji.css">
+
+     <script src="jquery-3.5.1.min.js"></script>
+
+</head>
+ 
+<body>
+    <div id="top" class="top">
+     <div id="status" class="error">すてーたす</div>
+
+     <div id="nav_toggle" class="nav_toggle">
+         <div></div>
+         <div></div>
+         <div></div>
+     </div>
+     <nav class="nav">
+         <ul class="nav_menu_ul">
+             <li class="nav_menu_li"><a href="index.html">ホームへ</a></li>
+             <li class="nav_menu_li"><a href="index.html#om_exp_back">おともじとは</a></li>
+             <li class="nav_menu_li"><a href="index.html#om_howto">つかいかた</a></li>
+             <li class="nav_menu_li"><a href="index.html#om_QA">Q＆A</a></li>
+         </ul>
+     </nav>
+    </div>
+
+
+    <div id="main" class="main">
+      <div id="text_main_box" class="text_main_box">
+          <div id="text_balloon" class="text_balloon"></div>
+          <div id="text_wrapper" class="text_wrapper">
+               <div id="result_text" class="text_area">こんにちは、下にあるボタンを押すとはじまるよ。まちがえて認識した文字はドラッグして知らせてね</div>
+          </div>              
+      </div>
+
+      <div id="image_main_box" class="image_main_box">
+          <div id="image_box" class="image_box">
+               <img id="image_place" src="image2.gif"/>
+          </div>
+          <br>
+          <div id="start_button" class="start_button">
+               <input type="button" onClick="vr_function();">
+          </div>
+      </div>
+    </div>
+</body>
+
+<script>
+     // ブラウザ判定
+     // 参考: https://qiita.com/sakuraya/items/33f93e19438d0694a91d
+
+     var userAgent = window.navigator.userAgent.toLowerCase();
+     var isChrome = 0;
+
+     if (userAgent.indexOf('msie') != -1 || userAgent.indexOf('trident') != -1) {
+          // IE
+     } else if (userAgent.indexOf('edge') != -1) {
+          // Edge
+     } else if (userAgent.indexOf('chrome') != -1) {
+          // Chrome
+          isChrome = 1;
+     } else if (userAgent.indexOf('safari') != -1) {
+          // Safari
+     } else if (userAgent.indexOf('firefox') != -1) {
+          // Firefox
+     } else if (userAgent.indexOf('opera') != -1) {
+          // Opera
+     } else {
+          // その他
+     }
+
+     if (!isChrome) {
+        alert('Google Chromeでアクセスしてください')
+        document.getElementById('status').innerHTML = "Google Chromeでアクセスしてください";
+        document.getElementById('status').className = "error";
+        exit;
+     }
+
+
+
+     // ハンバーガーメニュー
+     // 参考：https://qiita.com/keitah/items/2b20c92ce28dc397e7b3
+     // 参考：https://style01.net/1049/
+
+     $(function(){
+          var nav_toggle= $('.nav_toggle');
+          var to_na= $('.nav_toggle, .nav');
+          var main = $('.main');
+          var nav_menu_li = $('.nav_menu_li a');
+
+          nav_toggle.on('click', function () {
+              to_na.toggleClass('show');
+              main.toggleClass('show');
+
+              //nav以外をタップした時
+              if(to_na.hasClass('show')){
+                   main.on('click',function(){
+                        to_na.removeClass('show');
+                   });
+
+                   nav_menu_li.on('click',function(){
+                        to_na.removeClass('show');
+                   });
+              }
+          });
+     });
+
+     // スクロール
+     // 参考：https://125naroom.com/web/2899
+
+     $(function(){
+          $('a[href^="#"]').click(function(){
+               var adjust = 0;
+               var speed = 500;
+               var href= $(this).attr("href");
+               var target = $(href == "#" || href == "" ? 'html' : href);
+               var position = target.offset().top + adjust;
+               $('body,html').animate({scrollTop:position}, speed, 'swing');
+               return false;
+          });
+     });
+
+
+     // 音声認識
+     // 参考: https://jellyware.jp/kurage/iot/webspeechapi.html
+
+     var flag_speech = 0;
+     var recognition;
+     var lang = 'ja-JP';
+     var textUpdateTimeoutID = 0;
+     var textUpdateTimeoutSecond = 50; // 音声認識結果が更新されない場合、クリアするまでの秒数（0以下の場合は自動クリアしない）
+
+     function vr_function() {
+          window.SpeechRecognition = window.SpeechRecognition || webkitSpeechRecognition;
+          recognition = new webkitSpeechRecognition();
+          recognition.lang = lang;
+          recognition.interimResults = true;
+          recognition.continuous = true;
+
+          recognition.onsoundstart = function () {
+               document.getElementById('status').innerHTML = "聞き取り中";
+          };
+          recognition.onnomatch = function () {
+               document.getElementById('status').innerHTML = "ごめんなさい、聞こえなかったみたい";
+          };
+          recognition.onerror = function () {
+               document.getElementById('status').innerHTML = "エラー";
+               if (flag_speech == 0)
+                    vr_function();
+          };
+          recognition.onsoundend = function () {
+               document.getElementById('status').innerHTML = "お休み中";
+               vr_function();
+          };
+
+          recognition.onresult = function (event) {
+               var results = event.results;
+               for (var i = event.resultIndex; i < results.length; i++) {
+                    if (results[i].isFinal) {
+                         var result_transcript = results[i][0].transcript
+                         if (lang == 'ja-JP') {
+                              result_transcript += '。';
+                         }
+ 
+                         document.getElementById('result_text').innerHTML = result_transcript;
+
+                         // キーワードを言うと画像が変化。
+                         if (result_transcript.includes("役立たず。") || result_transcript.includes("役に立たない。") || result_transcript.includes("使えない。") || result_transcript.includes("ひどい。") 
+                             || result_transcript.includes("意味がない。") || result_transcript.includes("つまらない。")  || result_transcript.includes("かわいそう。") ) {
+                               var img = document.getElementById("image_place");
+                               img.src = "image1.png";
+                         } else if (result_transcript.includes("ありがとう。") || result_transcript.includes("可愛い。") || result_transcript.includes("かわいい。") || result_transcript.includes("素敵。") 
+                                    || result_transcript.includes("面白い。") || result_transcript.includes("そのままでいい。") || result_transcript.includes("優しい。")  || result_transcript.includes("いいですね。") ) {
+                               var img = document.getElementById("image_place");
+                               img.src = "image3.png";
+
+                         } else {
+                               var img = document.getElementById("image_place");
+                               img.src = "image2.gif";
+                         }
+
+                         document.getElementById('result_text').innerHTML = result_transcript;
+
+                         setTimeoutForClearText();
+
+                         vr_function();
+
+                         flag_speech = 0;
+
+ 
+                    } else {
+                         var result_transcript = results[i][0].transcript;
+
+                         // 途中であってもキーワードを言うと画像が変化する。
+                         if (result_transcript.includes("役立たず") || result_transcript.includes("役に立たない") || result_transcript.includes("使えない") || result_transcript.includes("ひどい") 
+                             || result_transcript.includes("意味がない") || result_transcript.includes("つまらない")  || result_transcript.includes("かわいそう") ) {
+                               var img = document.getElementById("image_place");
+                               img.src = "image1.png";
+                         } else if (result_transcript.includes("ありがとう") || result_transcript.includes("可愛い") || result_transcript.includes("かわいい") || result_transcript.includes("素敵")
+                                    || result_transcript.includes("面白い") || result_transcript.includes("そのままでいい") || result_transcript.includes("優しい")  || result_transcript.includes("いいですね") ) {
+                               var img = document.getElementById("image_place");
+                               img.src = "image3.png";
+                         } else {
+                               var img = document.getElementById("image_place");
+                               img.src = "image2.gif";
+                         }
+
+                         document.getElementById('result_text').innerHTML = result_transcript;
+
+                         flag_speech = 1;
+                         
+
+                    }
+               }
+          }
+
+          flag_speech = 0;
+          document.getElementById('status').innerHTML = "待機ちゅー";
+          recognition.start();
+     }
+
+     function updateTextClearSecond() {
+          const sec = Number(document.getElementById('select_autoclear_text').value);
+          if ((!isNaN(sec)) && isFinite(sec) && (sec >= 0)) {
+               textUpdateTimeoutSecond = sec;
+          }
+     }
+
+     function clearTimeoutForClearText() {
+          if (textUpdateTimeoutID !== 0) {
+               clearTimeout(textUpdateTimeoutID);
+               textUpdateTimeoutID = 0;
+          }
+     }
+
+     // タイマー設定
+     // 参考：https://github.com/1heisuzuki/speech-to-text-webcam-overlay
+     function setTimeoutForClearText() {
+          if (textUpdateTimeoutSecond <= 0) return;
+
+          clearTimeoutForClearText();
+          textUpdateTimeoutID = setTimeout(
+               () => {
+                    document.getElementById('result_text').innerHTML = "";
+                    textUpdateTimeoutID = 0;
+               }, 
+               textUpdateTimeoutSecond * 1000);
+     }     
+
+</script> 
+
+</html>
